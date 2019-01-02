@@ -156,17 +156,17 @@ void setup(void) {
         String colorRGBW = server.arg("color");
         Serial.println("colorRGBW: " + colorRGBW);
         unsigned long colorRGBW_long = strtoul(colorRGBW.c_str(), NULL, 16);
-        Serial.println("colorRGBW_long: " + colorRGBW_long);
+        // Serial.println("colorRGBW_long: " + colorRGBW_long);
 
         whiteLevel = colorRGBW_long & 0x000000FF;
-        blueLevel = (colorRGBW_long >> 8) & 0x000000FF;
-        greenLevel = (colorRGBW_long >> 16) & 0x000000FF;
-        redLevel = (colorRGBW_long >> 24) & 0x000000FF;
-
-        Serial.println(redLevel);
-        Serial.println(greenLevel);
-        Serial.println(blueLevel);
         Serial.println(whiteLevel);
+        blueLevel = (colorRGBW_long >> 8) & 0x000000FF;
+        Serial.println(blueLevel);
+        greenLevel = (colorRGBW_long >> 16) & 0x000000FF;
+        Serial.println(greenLevel);
+        redLevel = (colorRGBW_long >> 24) & 0x000000FF;
+        Serial.println(redLevel);
+
         
         analogWrite(LED_RED, redLevel);
         analogWrite(LED_GREEN, greenLevel);
