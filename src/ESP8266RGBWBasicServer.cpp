@@ -1,4 +1,17 @@
 /*
+  A Simple Web Server for an ESP8266, to control an RGBW Analog LED Strip
+
+  Output: Web Page on LAN
+  Inputs: RGBW intensity in a HTTP GET request
+  Output signals: PWM for each channel, corresponding to input
+
+  TODO: POST requests with a more advanced UI
+  TODO: HTTPS
+
+  Note: ESP8266 output signals are 3.3V and are wired to corresponding IRLB8721 N-channel MOSFET gates (one per channel)
+
+
+  Based off an Arduino ESP8266 Library Sketch called AdvancedWebServer:
    Copyright (c) 2015, Majenko Technologies
    All rights reserved.
 
