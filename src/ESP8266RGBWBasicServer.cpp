@@ -62,16 +62,12 @@
 const char *ssid = STASSID;
 const char *password = STAPSK;
 
-ESP8266WebServer server(80);
-
-const int led = 13;
-
 uint8_t redLevel, greenLevel, blueLevel, whiteLevel;
 
-void drawGraph();
+ESP8266WebServer server(80);
+
 
 void handleRoot() {
-  digitalWrite(led, 1);
   char temp[400];
   int sec = millis() / 1000;
   int min = sec / 60;
@@ -81,7 +77,7 @@ void handleRoot() {
 
            "<html>\
   <head>\
-    <meta http-equiv='refresh' content='5'/>\
+    <meta http-equiv='refresh' content='60'/>\
     <title>ESP8266 Demo</title>\
     <style>\
       body { background-color: #cccccc; font-family: Arial, Helvetica, Sans-Serif; Color: #000088; }\
@@ -90,14 +86,13 @@ void handleRoot() {
   <body>\
     <h1>Hello from ESP8266!</h1>\
     <p>Uptime: %02d:%02d:%02d</p>\
-    <img src=\"/test.svg\" />\
+    <img src=\"https://i.imgur.com/sBUyG2a.jpg\">\
   </body>\
 </html>",
 
            hr, min % 60, sec % 60
           );
   server.send(200, "text/html", temp);
-  digitalWrite(led, 0);
 }
 
 // void handleColorChosen() {
@@ -105,7 +100,6 @@ void handleRoot() {
 // }
 
 void handleNotFound() {
-  digitalWrite(led, 1);
   String message = "File Not Found\n\n";
   message += "URI: ";
   message += server.uri();
@@ -120,11 +114,10 @@ void handleNotFound() {
   }
 
   server.send(404, "text/plain", message);
-  digitalWrite(led, 0);
 }
 
 void setup(void) {
-    //initialize and turn off onboard LEDs
+    //initialize and turn off onboard LEDs which are active low
     pinMode(LED_ONBOARD_BLUE, OUTPUT);
     pinMode(LED_ONBOARD_RED, OUTPUT);
     digitalWrite(LED_ONBOARD_BLUE, HIGH);
@@ -137,9 +130,10 @@ void setup(void) {
     pinMode(LED_BLUE, OUTPUT);
     pinMode(LED_WHITE, OUTPUT);
     
-    // Start serial session and start WiFi connection
+    // Start serial session (for debug) and start WiFi connection
     Serial.begin(115200);
     WiFi.mode(WIFI_STA);
+    WiFi.hostname("LED_Control_0");
     WiFi.begin(ssid, password);
     Serial.println("");
 
@@ -149,11 +143,13 @@ void setup(void) {
         Serial.print(".");
     }
 
+    //Connected...
     Serial.println("");
     Serial.print("Connected to ");
     Serial.println(ssid);
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
+
 
     if (MDNS.begin("esp8266")) {
         Serial.println("MDNS responder started");
@@ -191,7 +187,6 @@ void setup(void) {
         server.send(200, "text/plain", "Led is now on serial output");
     });
     server.on("/", handleRoot);
-    server.on("/test.svg", drawGraph);
     server.on("/inline", []() {
         server.send(200, "text/plain", "this works as well");
     });
@@ -202,22 +197,4 @@ void setup(void) {
 
 void loop(void) {
   server.handleClient();
-}
-
-void drawGraph() {
-  String out = "";
-  char temp[100];
-  out += "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"400\" height=\"150\">\n";
-  out += "<rect width=\"400\" height=\"150\" fill=\"rgb(250, 230, 210)\" stroke-width=\"1\" stroke=\"rgb(0, 0, 0)\" />\n";
-  out += "<g stroke=\"black\">\n";
-  int y = rand() % 130;
-  for (int x = 10; x < 390; x += 10) {
-    int y2 = rand() % 130;
-    sprintf(temp, "<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke-width=\"1\" />\n", x, 140 - y, x + 10, 140 - y2);
-    out += temp;
-    y = y2;
-  }
-  out += "</g>\n</svg>\n";
-
-  server.send(200, "image/svg+xml", out);
 }
