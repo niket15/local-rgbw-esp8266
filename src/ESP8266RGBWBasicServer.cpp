@@ -5,6 +5,7 @@
   Inputs: RGBW intensity in a HTTP GET request
   Output signals: PWM for each channel, corresponding to input
 
+  TODO: Separate inline callback
   TODO: POST requests with a more advanced UI
   TODO: HTTPS
 
@@ -55,7 +56,7 @@
 #define LED_BLUE 13 // GPIO13, D7
 #define LED_WHITE 15 // GPIO15, D8
 
-//define onboard LED pins to avoid ZZ
+//define onboard LED pins so they can be set to avoid high Z
 #define LED_ONBOARD_BLUE 2
 #define LED_ONBOARD_RED 16
 
@@ -68,36 +69,31 @@ ESP8266WebServer server(80);
 
 
 void handleRoot() {
-  char temp[400];
+  char temp[580];
   int sec = millis() / 1000;
   int min = sec / 60;
   int hr = min / 60;
 
-  snprintf(temp, 400,
-
+  snprintf(temp, 580,
            "<html>\
-  <head>\
-    <meta http-equiv='refresh' content='60'/>\
-    <title>ESP8266 Demo</title>\
-    <style>\
-      body { background-color: #cccccc; font-family: Arial, Helvetica, Sans-Serif; Color: #000088; }\
-    </style>\
-  </head>\
-  <body>\
-    <h1>Hello from ESP8266!</h1>\
-    <p>Uptime: %02d:%02d:%02d</p>\
-    <img src=\"https://i.imgur.com/sBUyG2a.jpg\">\
-  </body>\
-</html>",
-
+              <head>\
+                <meta http-equiv='refresh' content='60'/>\
+                <title>RGBW LED Controller 0</title>\
+                <style>\
+                  body { background-color: #cccccc; font-family: Arial, Helvetica, Sans-Serif; Color: #000088; }\
+                </style>\
+              </head>\
+              <body>\
+                <h1>Pick your color! (coming soon)</h1>\
+                <p>Uptime: %02d:%02d:%02d</p>\
+                <img src=\"https://i.imgur.com/sBUyG2a.jpg\">\
+              </body>\
+            </html>",
            hr, min % 60, sec % 60
           );
   server.send(200, "text/html", temp);
 }
 
-// void handleColorChosen() {
-    
-// }
 
 void handleNotFound() {
   String message = "File Not Found\n\n";
@@ -117,50 +113,46 @@ void handleNotFound() {
 }
 
 void setup(void) {
-    //initialize and turn off onboard LEDs which are active low
-    pinMode(LED_ONBOARD_BLUE, OUTPUT);
-    pinMode(LED_ONBOARD_RED, OUTPUT);
-    digitalWrite(LED_ONBOARD_BLUE, HIGH);
-    digitalWrite(LED_ONBOARD_RED, HIGH);
+  //initialize and turn off onboard LEDs which are active low
+  pinMode(LED_ONBOARD_BLUE, OUTPUT);
+  pinMode(LED_ONBOARD_RED, OUTPUT);
+  digitalWrite(LED_ONBOARD_BLUE, HIGH);
+  digitalWrite(LED_ONBOARD_RED, HIGH);
 
-    //initialize relevant outputs
-    analogWriteRange(255);
-    pinMode(LED_RED, OUTPUT); 
-    pinMode(LED_GREEN, OUTPUT);
-    pinMode(LED_BLUE, OUTPUT);
-    pinMode(LED_WHITE, OUTPUT);
-    
-    // Start serial session (for debug) and start WiFi connection
-    Serial.begin(115200);
-    WiFi.mode(WIFI_STA);
-    WiFi.hostname("LED_Control_0");
-    WiFi.begin(ssid, password);
-    Serial.println("");
+  //initialize relevant outputs
+  analogWriteRange(255);
+  pinMode(LED_RED, OUTPUT); 
+  pinMode(LED_GREEN, OUTPUT);
+  pinMode(LED_BLUE, OUTPUT);
+  pinMode(LED_WHITE, OUTPUT);
+  
+  // Start serial session (for debug) and start WiFi connection
+  Serial.begin(115200);
+  WiFi.mode(WIFI_STA);
+  WiFi.hostname("LED_Control_0"); // set hostname of interface (ie shows up in router config)
+  WiFi.begin(ssid, password);
+  Serial.println("");
 
-    // Wait for connection
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
+  // Wait for connection
+  while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+  }
 
-    //Connected...
-    Serial.println("");
-    Serial.print("Connected to ");
-    Serial.println(ssid);
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
+  //Connected...
+  Serial.println("");
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
 
-
-    if (MDNS.begin("esp8266")) {
-        Serial.println("MDNS responder started");
-    }
+  // Start Multicast DNS to respond to chosen name (eg: LED_Control_0.local in any browser on same LAN)
+  if (MDNS.begin("LED_Control_0")) {
+      Serial.println("MDNS responder started");
+  }
 
     // https://www.esp8266.com/viewtopic.php?t=2153
-    // Processing arguments of GET and POST requests is also easy enough. 
-    // Let's make our sketch turn a led on or off depending on the value of a request argument.
-    // http://<ip address>/led?state=on will turn the led ON
-    // http://<ip address>/led?state=off will turn the led OFF
-    //this is an inline callback
+    // note: this is an inline callback
     server.on("/led", []() {
         String colorRGBW = server.arg("color");
         Serial.println("colorRGBW: " + colorRGBW);
@@ -182,8 +174,6 @@ void setup(void) {
         analogWrite(LED_BLUE, blueLevel);
         analogWrite(LED_WHITE, whiteLevel);
 
-        // if (colorRGBW == "on") digitalWrite(13, LOW);
-        // else if (colorRGBW == "off") digitalWrite(13, HIGH);
         server.send(200, "text/plain", "Led is now on serial output");
     });
     server.on("/", handleRoot);
