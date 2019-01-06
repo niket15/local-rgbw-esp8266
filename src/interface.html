@@ -3,7 +3,8 @@
 
   Resources:
   https://www.w3schools.com/jquery/jquery_selectors.asp
-  https://api.jquery.com/jQuery.each/
+  https://api.jquery.com/each/
+  https://api.jquery.com/append/
   https://www.w3.org/TR/SVG/shapes.html#CircleElement
 -->
 <!DOCTYPE html>
@@ -14,7 +15,8 @@
 $(document).ready(function(){
   $("#grid").each(function(){
     for (var i = 0; i < 8; i++){
-    	$(this).append('<img src="https://i.imgur.com/sBUyG2a.jpg">');
+      $(this).append('<svg width="100pt" height="100pt" xmlns="http://www.w3.org/2000/svg" version="1.1"><circle cx="50" cy="50" r="48" fill="maroon" stroke="black" stroke-width="4" /></svg>');
+    	// $(this).append('<img src="https://i.imgur.com/sBUyG2a.jpg">');
     }
   });
 });
