@@ -1,30 +1,187 @@
-<!--
-  Web UI for RGBW Color Picker Server
 
-  Resources:
-  https://www.w3schools.com/jquery/jquery_selectors.asp
-  https://api.jquery.com/each/
-  https://api.jquery.com/append/
-  https://www.w3.org/TR/SVG/shapes.html#CircleElement
--->
 <!DOCTYPE html>
 <html>
 <head>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<meta charset="utf-8"/>
+
+<style>
+  body {
+    background-color: #000000;
+  }
+
+  .grid-container { /* https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Grid_Layout/Line-based_Placement_with_CSS_Grid */
+    display: grid;
+    grid-template-columns: repeat(16, minmax(1px, 1fr)); /* https://www.rachelandrew.co.uk/archives/2016/04/12/flexible-sized-grids-with-auto-fill-and-minmax/ */
+    grid-gap: 0px;
+  }
+
+  .gridButton { /* https://www.w3schools.com/css/css3_buttons.asp */
+    background-color: blue;
+    border-radius: 50%; /* https://www.w3schools.com/howto/howto_css_round_buttons.asp */
+    padding: 50%;
+    /* border-width: 3px; */
+    border-color: darkgray;
+    /* margin: 3px; */
+    opacity: 0;
+    /* https://www.w3schools.com/css/css3_animations.asp */
+    animation-name: showButton;
+    animation-duration: 0.2s;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards; /* https://stackoverflow.com/questions/9774829/css-animation-property-stays-after-animating */
+    width: 0px;
+    /* height: "20px"; */
+  }
+
+  #debugBox {
+    color: white;
+    font-size: 20pt;
+  }
+
+  @keyframes showButton {
+    0% {opacity: 0;}
+    /*50% {opacity: 0.5;}*/
+    100% {opacity: 1;}
+  }
+
+</style>
+
 <script>
-$(document).ready(function(){
-  $("#grid").each(function(){
-    for (var i = 0; i < 8; i++){
-      $(this).append('<svg width="100pt" height="100pt" xmlns="http://www.w3.org/2000/svg" version="1.1"><circle cx="50" cy="50" r="48" fill="maroon" stroke="black" stroke-width="4" /></svg>');
-    	// $(this).append('<img src="https://i.imgur.com/sBUyG2a.jpg">');
+  /* Creates the UI buttons */
+  function makeButtons() {
+    var gridInstance = document.getElementsByClassName("grid-container")[0]; /* https://www.w3schools.com/jsref/met_document_getelementbyid.asp https://www.w3schools.com/jsref/met_element_getelementsbyclassname.asp */
+    /* An ID should be unique within a page. However, if more than one element with the specified ID exists, the getElementById() method returns the first element in the source code. */
+    var readoutBox = document.getElementById("debugBox");
+    var colorHue = 0; /* initial button hue - we will adjust other factors separately */
+
+    for (var j = 0; j < 16; j++) {
+      for (var i = 0; i < 16; i++) {
+        var tempButton = document.createElement("div"); /* https://www.w3schools.com/jsref/dom_obj_all.asp */
+        tempButton.classList.add("gridButton");
+        var buttonHue = colorHue;
+        tempButton.style.backgroundColor = "hsl(" + buttonHue + ", 75%, 50%)";  /* https://www.w3schools.com/js/js_htmldom_css.asp */
+        tempButton.style.animationDelay = ((j+i)*0.05).toString() + "s";
+        gridInstance.appendChild(tempButton); /* https://www.w3schools.com/jsref/met_node_appendchild.asp */
+        colorHue = colorHue + 1.40625;//5.625; // ~~360 / 64 */
+      }
     }
-  });
-});
+
+    // register event listener to the whole grid (not to each button), and use the event target (specific button) to get color of that button an send it to server in a POST XMLHTTPRequest
+
+    // https://stackoverflow.com/questions/51134257/javascript-adding-event-listener-to-an-array-of-objects
+    // gridInstance.addEventListener("click", function(event){ //https://www.w3schools.com/jsref/met_element_addeventlistener.asp, https://stackoverflow.com/questions/12627443/jquery-click-vs-onclick
+    //   if(event.target.classList.contains("gridButton")){ //  (check if inded buttoon was pressed otherwise grid div background performs these actions too) https://stackoverflow.com/questions/5898656/test-if-an-element-contains-a-class
+    //     readoutBox.innerText = event.target.style.backgroundColor.toString();
+    //       var colorMessage = new XMLHttpRequest(); //https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest , https://www.w3schools.com/js/js_ajax_http.asp
+    //       colorMessage.open('POST', 'led?color=' + '#FF00FF00');
+    //       // colorMessage.send();
+    //     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/padStart
+    //     // https://stackoverflow.com/questions/57803/how-to-convert-decimal-to-hex-in-javascript
+    //     // event.target.style.backgroundColor = "#00FFFF";
+    //   }
+    // });
+
+    gridInstance.addEventListener('touchstart', function(event){
+      if(event.target.classList.contains("gridButton")) {
+        readoutBox.innerText = event.target.style.backgroundColor.toString();
+        // console.log("touchstart fired! - color = " + event.target.style.backgroundColor.toString());
+      }
+      else {
+        console.log("bad click");
+      }
+    }, false);
+    gridInstance.addEventListener('touchmove', function(event) { // https://stackoverflow.com/questions/11523496/find-element-finger-is-on-during-a-touchend-event
+      event.preventDefault(); // Stop touch from scrolling whole page when sliding finger around!  https://developer.mozilla.org/en-US/docs/Web/API/Event/preventDefault
+      console.log(event.changedTouches);
+      if(event.target.classList.contains("gridButton")) {
+        console.log(event.target.classList);
+        event.changedTouches[0].sendColorRGB();
+        // var newTarget = document.elementFromPoint(changedTouch.clientX, changedTouch.clientY);
+        // console.log(newTarget + "  " + (typeof newTarget));
+        // if (typeof newTarget !== 'null') {
+        //   if (newTarget !== 'null') {
+        //     if (newTarget.style.backgroundColor !== '') {
+        //       readoutBox.innerText = newTarget.style.backgroundColor.toString();
+        //       //   console.log("touchmove fired! - color = " + newTarget.style.backgroundColor.toString());
+        //     }
+        //   }
+        // }
+      }
+    }, false);
+    gridInstance.addEventListener('touchcancel', function(event) {
+
+    }, false);
+    gridInstance.addEventListener('touchend', function(event) {
+
+    }, false);
+    // Touch events: http://www.javascriptkit.com/javatutors/touchevents.shtml
+    // http://blog.jonathanargentiero.com/get-mousemove-and-touchmove-element-target/
+    // https://developer.mozilla.org/en-US/docs/Web/API/Touch_events/Using_Touch_Events
+  }
+
+  function sendColorRGB() { // called by event
+    if(typeof this === Element && this !== 'null') {
+      if (this.style.backgroundColor !== '') {
+        var colorMessage = new XMLHttpRequest(); //https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest , https://www.w3schools.com/js/js_ajax_http.asp
+        // colorMessage.open('POST', 'led?color=' + '#FF00FF00');
+        colorMessage.open('POST', '192.168.1.15/led?color=' + '#FF00FF00');
+        colorMessage.send();
+    //     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/padStart
+    //     // https://stackoverflow.com/questions/57803/how-to-convert-decimal-to-hex-in-javascript
+        readoutBox.innerText = this.style.backgroundColor.toString();
+        //   console.log("touchmove fired! - color = " + newTarget.style.backgroundColor.toString());
+      }
+    }
+  }
+
+
+  // var colorMessage = new XMLHttpRequest(); //https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest , https://www.w3schools.com/js/js_ajax_http.asp
+    //       colorMessage.open('POST', 'led?color=' + '#FF00FF00');
+    //       // colorMessage.send();
+    //     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/padStart
+    //     // https://stackoverflow.com/questions/57803/how-to-convert-decimal-to-hex-in-javascript
+  
 </script>
 </head>
-<body>
+<body onload="makeButtons()">
 
-<div id=grid></div>
+<div class=grid-container ></div>
+<!-- https://stackoverflow.com/questions/114543/how-to-horizontally-center-a-div -->
+
+
+<p id=debugBox></p>
 
 </body>
 </html>
+
+
+<!--
+  Web UI for RGBW Color Picker Server
+
+  Resources
+
+  HTML:
+  https://www.w3schools.com/js/js_htmldom_events.asp
+
+  JS:
+  https://www.w3schools.com/js/js_htmldom_document.asp
+  https://www.elated.com/articles/javascript-timers-with-settimeout-and-setinterval/ //not used
+  https://developer.mozilla.org/en-US/docs/Web/CSS/perspective
+
+  jQuery:
+  https://www.w3schools.com/jquery/jquery_selectors.asp
+  https://api.jquery.com/each/
+  https://api.jquery.com/append/
+
+  SVG:
+  https://www.w3.org/TR/SVG/shapes.html#CircleElement
+
+  CSS
+  https://www.w3schools.com/css/css_boxmodel.asp
+  https://www.w3schools.com/css/css_syntax.asp
+  https://www.w3schools.com/cssref/css_selectors.asp
+  https://medium.com/@bradley_nice/40-css3-button-examples-with-effects-animations-4b2072f78292
+  https://www.w3schools.com/css/tryit.asp?filename=trycss_buttons_animate2
+  https://gridbyexample.com/examples/example1/
+
+  TODO: touch tracking + dynamic XMLHTTPRequest firing while touch input moves over colors
+-->
